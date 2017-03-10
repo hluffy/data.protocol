@@ -2,7 +2,8 @@ package com.dk.object;
 
 public class Data {
 	private Integer length;
-	private String IMEI;
+	private String equipNo;//转换前的imei
+	private String IMEI;//转换后的imei
 	private String type;
 	private String data;
 	private String code;
@@ -35,6 +36,12 @@ public class Data {
 	}
 	public void setCode(String code) {
 		this.code = code;
+	}
+	public String getEquipNo() {
+		return equipNo;
+	}
+	public void setEquipNo(String equipNo) {
+		this.equipNo = equipNo;
 	}
 	
 

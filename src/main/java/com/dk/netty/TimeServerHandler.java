@@ -43,7 +43,8 @@ public class TimeServerHandler extends ChannelInboundHandlerAdapter {
         String[] datas = (String[])strs.toArray(new String[strs.size()]);
         StringBuffer sb = new StringBuffer();
         for(int i = 0;i<datas.length;i++){
-        	sb.append(datas[i].toUpperCase());
+//        	sb.append(datas[i].toUpperCase());
+        	sb.append(datas[i]);
         }
         System.out.println(sb.toString());
         

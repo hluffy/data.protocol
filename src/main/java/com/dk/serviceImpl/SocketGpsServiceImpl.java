@@ -8,7 +8,7 @@ import java.sql.Timestamp;
 import com.dk.object.GPS;
 import com.dk.object.Result;
 import com.dk.service.SocketGpsService;
-import com.dk.util.MysqlUtil;
+import com.dk.util.DBUtil;
 
 public class SocketGpsServiceImpl implements SocketGpsService{
 
@@ -20,7 +20,7 @@ public class SocketGpsServiceImpl implements SocketGpsService{
 		String sql = "insert into socketgps(EquipmentNo,Date,Time,IsPosition,Latitude,Longitude,Speed,Direction,Altitude,BaseStation,WiFi,Elec,Gsensor,DateCreated) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		
 		try {
-			conn = MysqlUtil.getConnection();
+			conn = DBUtil.getConnection();
 			ps = conn.prepareStatement(sql);
 			ps.setString(1, gps.getEquipmentNo());
 			ps.setString(2, gps.getDate());
@@ -41,7 +41,7 @@ public class SocketGpsServiceImpl implements SocketGpsService{
 			result.setData(gps);
 			result.setMsg("保存成功");
 			result.setStatus(true);
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			result.setMsg("保存失败");
 			result.setStatus(false);
