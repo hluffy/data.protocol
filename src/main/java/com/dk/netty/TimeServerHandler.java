@@ -81,7 +81,7 @@ public class TimeServerHandler extends ChannelInboundHandlerAdapter {
     }
     
     private byte charToByte(char c) {   
-        return (byte) "0123456789ABCDEF".indexOf(c);   
+        return (byte) "0123456789ABCDEF".indexOf(c);
     } 
 
     @Override
