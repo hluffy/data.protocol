@@ -1,5 +1,7 @@
 package com.dk.data;
 
+import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -7,8 +9,11 @@ import java.util.List;
 
 import com.dk.object.Data;
 import com.dk.object.GPS;
-import com.dk.object.Result;
+import com.dk.object.MapWatchData;
+import com.dk.object.TransGps;
+import com.dk.service.MapWatchDataService;
 import com.dk.service.SocketGpsService;
+import com.dk.serviceImpl.MapWatchDataServiceImpl;
 import com.dk.serviceImpl.SocketGpsServiceImpl;
 
 public class DataAnalysis {
@@ -99,10 +104,10 @@ public class DataAnalysis {
 	
 	
 	public static List<String> getListString(){
-//		String str = "26 26 00 db 12 30 dd 46 37 ee 90 37 32 30 31 35 30 39 32 34 2c 31 30 31 39 33 30 2c 41 2c 32 32 2e 35 36 34 30 32 35 2c 4e 2c 31 31 33 2e 32 34 32 33 32 39 2c 45 2c 35 2e 32 31 2c 31 35 32 2c 31 30 30 40 31 30 31 33 33 2c 35 31 37 33 2c 34 36 30 2c 30 31 2c 36 36 2d 31 30 31 33 33 2c 35 31 37 33 2c 34 36 30 2c 30 31 2c 36 36 40 33 38 3a 38 33 3a 34 35 3a 62 66 3a 61 66 3a 61 30 2c 33 34 2d 65 63 3a 32 36 3a 63 61 3a 64 39 3a 30 63 3a 34 61 2c 34 38 2d 36 30 3a 64 38 3a 31 39 3a 64 32 3a 39 33 3a 36 34 2c 35 38 2d 38 30 3a 38 39 3a 31 37 3a 33 62 3a 38 63 3a 35 65 2c 35 38 2d 38 38 3a 32 35 3a 39 33 3a 31 31 3a 39 38 3a 38 66 2c 36 30 40 31 30 30 40 31 40 31 c6";
+		String str = "26 26 00 db 12 30 dd 46 37 ee 90 37 32 30 31 35 30 39 32 34 2c 31 30 31 39 33 30 2c 41 2c 32 32 2e 35 36 34 30 32 35 2c 4e 2c 31 31 33 2e 32 34 32 33 32 39 2c 45 2c 35 2e 32 31 2c 31 35 32 2c 31 30 30 40 31 30 31 33 33 2c 35 31 37 33 2c 34 36 30 2c 30 31 2c 36 36 2d 31 30 31 33 33 2c 35 31 37 33 2c 34 36 30 2c 30 31 2c 36 36 40 33 38 3a 38 33 3a 34 35 3a 62 66 3a 61 66 3a 61 30 2c 33 34 2d 65 63 3a 32 36 3a 63 61 3a 64 39 3a 30 63 3a 34 61 2c 34 38 2d 36 30 3a 64 38 3a 31 39 3a 64 32 3a 39 33 3a 36 34 2c 35 38 2d 38 30 3a 38 39 3a 31 37 3a 33 62 3a 38 63 3a 35 65 2c 35 38 2d 38 38 3a 32 35 3a 39 33 3a 31 31 3a 39 38 3a 38 66 2c 36 30 40 31 30 30 40 31 40 31 c6";
 //		String str = "26 26 00 9b 12 30 dd 46 37 ee 90 36 33 38 3a 38 33 3a 34 35 3a 62 66 3a 61 66 3a 61 30 2c 33 34 2d 65 63 3a 32 36 3a 63 61 3a 64 39 3a 30 63 3a 34 61 2c 34 38 2d 36 30 3a 64 38 3a 31 39 3a 64 32 3a 39 33 3a 36 34 2c 35 38 2d 38 30 3a 38 39 3a 31 37 3a 33 62 3a 38 63 3a 35 65 2c 35 38 2d 38 38 3a 32 35 3a 39 33 3a 31 31 3a 39 38 3a 38 66 2c 36 30 40 31 30 31 33 33 2c 35 31 37 33 2c 34 36 30 2c 30 31 2c 36 36 2d 31 30 31 33 33 2c 35 31 37 33 2c 34 36 30 2c 30 31 2c 36 36 b3";
 //		String str = "26 26 00 09 00 00 00 01 e2 40 90 20 13";
-		String str = "26 26 00 0a 00 00 00 01 e2 40 90 20 01 12";
+//		String str = "26 26 00 0a 00 00 00 01 e2 40 90 20 01 12";
 		String[] strs = str.split(" ");
 		List<String> lists = new ArrayList<String>();
 		if((strs[0]+strs[1]).equals("2626")){
@@ -310,6 +315,9 @@ public class DataAnalysis {
 	
 	public static String useData9037(Data data){
 		SocketGpsService gpsService = new SocketGpsServiceImpl();
+		MapWatchDataService mapService = new MapWatchDataServiceImpl();
+		MapWatchData mapWatchData = new MapWatchData();
+		mapWatchData.setIMEI(data.getIMEI());//设备号
 		GPS gps = new GPS();
 		String dataStr = data.getData();
 		String[] strs = dataStr.split("@");
@@ -331,9 +339,25 @@ public class DataAnalysis {
 //		}
 		gps.setDate(gpsData[0]);
 		gps.setTime(gpsData[1]);
+		String watchTime = gpsData[0]+gpsData[1];
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+		try {
+			Date watchDate = sdf.parse(watchTime);
+			sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			mapWatchData.setWatchDate(Timestamp.valueOf(sdf.format(watchDate)));//watch_date
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		mapWatchData.setCreateDate(new Timestamp(System.currentTimeMillis()));//create_date
+		
 		gps.setIsPosition(gpsData[2]);
+		mapWatchData.setIsPosition(gpsData[2]);//定位类型
 		gps.setLatitude(gpsData[3]);
+		mapWatchData.setXloc(gpsData[3]);//纬度
 		gps.setLongitude(gpsData[5]);
+		mapWatchData.setYloc(gpsData[5]);//经度
 		gps.setSpeed(gpsData[7]);
 		gps.setDirection(gpsData[8]);
 		gps.setAltitude(gpsData[9]);
@@ -341,6 +365,7 @@ public class DataAnalysis {
 		gps.setStation(stationStr);
 		gps.setWifi(wifiStr);
 		gps.setEle(eleStr);
+		mapWatchData.setBat(Integer.parseInt(eleStr));//电量
 		gps.setGsensor(gsensor);
 		gps.setAcc(acc);
 		System.out.println("gps-----------------");
@@ -355,10 +380,25 @@ public class DataAnalysis {
 		
 		
 		//保存数据
-		Result result = gpsService.addGps(gps);
-		return result.getMsg();
+//		Result result = gpsService.addGps(gps);
+//		return result.getMsg();
+		mapService.addMapDateDef(mapWatchData);//保存原始数据
+		System.out.println("原始数据保存成功");
 		
-//		return null;
+		//转换经纬度  WGS84---->GCJ02
+		double xloc = Double.parseDouble(mapWatchData.getXloc());
+		double yloc = Double.parseDouble(mapWatchData.getYloc());
+		TransGps transGps = new TransGps();
+		transGps = PositionUtil.gps84_To_Gcj02(xloc, yloc);
+		System.out.println("transGps:"+transGps);
+		mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
+		mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
+		
+		
+		mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+		System.out.println("转换数据保存成功");
+		return null;
+		
 	}
 
 }
