@@ -23,5 +23,12 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/carol/Desktop/json/commons-beanutils-1.7.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/carol/Desktop/json/commons-collections-3.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/carol/Desktop/json/commons-httpclient-3.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/carol/Desktop/json/commons-lang-2.5.jar"/>
+	<classpathentry kind="lib" path="C:/Users/carol/Desktop/json/commons-logging-1.0.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/carol/Desktop/json/ezmorph-1.0.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/carol/Desktop/json/json-lib-2.1-jdk15.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
