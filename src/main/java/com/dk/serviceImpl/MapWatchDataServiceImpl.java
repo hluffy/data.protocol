@@ -19,7 +19,7 @@ public class MapWatchDataServiceImpl implements MapWatchDataService{
 		PreparedStatement ps = null;
 		
 		try {
-			String sql = "insert into map_watch_data_def(IMEI,Xloc,Yloc,Bat,RSSI,sos,watch_date,create_date,is_position,address,type) values(?,?,?,?,?,?,?,?,?,?,?)";
+			String sql = "insert into map_watch_data_def(IMEI,Xloc,Yloc,Bat,RSSI,sos,watch_date,create_date,is_position,address,type,gps_info,bts_info) values(?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			conn = DBUtil.getConnection();
 			ps = conn.prepareStatement(sql);
 			ps.setString(1, data.getIMEI());
@@ -33,6 +33,9 @@ public class MapWatchDataServiceImpl implements MapWatchDataService{
 			ps.setString(9, data.getIsPosition());
 			ps.setString(10, data.getAddress());
 			ps.setString(11, data.getType());
+			
+			ps.setString(12, data.getGpsInfo());
+			ps.setString(13, data.getBtsInfo());
 			
 			ps.execute();
 			result.setStatus(true);

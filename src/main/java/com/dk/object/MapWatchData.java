@@ -15,6 +15,10 @@ public class MapWatchData {
 	private String isPosition;
 	private String address;
 	private String type;
+	
+	private String gpsInfo;
+	private String btsInfo;
+	
 	public long getId() {
 		return id;
 	}
@@ -86,6 +90,18 @@ public class MapWatchData {
 	}
 	public void setSos(int sos) {
 		this.sos = sos;
+	}
+	public String getGpsInfo() {
+		return gpsInfo;
+	}
+	public void setGpsInfo(String gpsInfo) {
+		this.gpsInfo = gpsInfo;
+	}
+	public String getBtsInfo() {
+		return btsInfo;
+	}
+	public void setBtsInfo(String btsInfo) {
+		this.btsInfo = btsInfo;
 	}
 	
 
