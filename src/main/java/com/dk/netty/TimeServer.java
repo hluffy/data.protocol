@@ -1,5 +1,7 @@
 package com.dk.netty;
 
+import java.util.Properties;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -42,7 +44,12 @@ public class TimeServer {
     }
 
     public static void main(String[] args) throws Exception {
-        int port = 6262;
+    	Properties pro = new Properties();
+    	pro.load(TimeServer.class.getClassLoader().getResourceAsStream("port.properties"));
+    	
+    	int port = Integer.parseInt(pro.getProperty("port"));
+    	
+//        int port = 6262;
         if (args != null && args.length > 0) {
             try {
                 port = Integer.valueOf(args[0]);

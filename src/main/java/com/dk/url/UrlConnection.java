@@ -29,7 +29,7 @@ public class UrlConnection {
 			URLConnection urlConnection = getUrl.openConnection();
 			
 			//设置请求参数
-			urlConnection.setRequestProperty("Accept", "*/*");
+			urlConnection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
 			urlConnection.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
 			urlConnection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
 			urlConnection.setRequestProperty("Connection", "keep-alive");
@@ -44,7 +44,7 @@ public class UrlConnection {
 			for(String key:map.keySet()){
 				System.out.println(key+"-----"+map.get(key));
 			}
-			in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+			in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(),"UTF-8"));
 			while((line=in.readLine()) != null){
 				sb.append(line);
 			}

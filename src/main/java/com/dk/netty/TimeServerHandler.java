@@ -58,13 +58,20 @@ public class TimeServerHandler extends ChannelInboundHandlerAdapter {
 //        00  21  41  4c  54  5f  4c  4f  52  41  30  30  31
 //        String hexString = "7B0021414c545f4c4f52413030318500840901017D";
 //        String hexString = "7B0033414C545F4C4F52413030318100030901017D";
-//        hexString = hexString.toUpperCase();   
+//        hexString = hexString.toUpperCase();
+        hexString = hexString.toLowerCase();
         int length = hexString.length() / 2;   
-        char[] hexChars = hexString.toCharArray();   
-        byte[] d = new byte[length];   
+//        char[] hexChars = hexString.toCharArray();   
+        byte[] d = new byte[length]; 
+        int k = 0;
         for (int i = 0; i < length; i++) {   
-            int pos = i * 2;   
-            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));   
+//            int pos = i * 2;   
+//            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));  
+        	  byte high = (byte) (Character.digit(hexString.charAt(k), 16) & 0xff);
+        	  byte low = (byte) (Character.digit(hexString.charAt(k + 1), 16) & 0xff);
+        	  d[i] = (byte) (high << 4 | low);
+        	  
+        	  k += 2;
         } 
         ByteBuf resp = Unpooled.copiedBuffer(d);
         ctx.writeAndFlush(resp);

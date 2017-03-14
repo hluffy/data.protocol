@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 import net.sf.json.JSONObject;
 
 import com.dk.object.Cdma;
@@ -57,7 +58,7 @@ public class DataAnalysis {
 			}
 		}
 		
-		for(int i=0;i<datas.size();i++){
+		for(int i=0;i<datas.size()-1;i++){
 			String data = datas.get(i);
 			if(data.equals("24")){
 				datas.add(i+1,"00");
@@ -182,8 +183,8 @@ public class DataAnalysis {
 		System.out.println("IMEI:"+imei.toString());
 		data.setEquipNo(imei.toString());
 //		String IMEIConv = sb.toString();
-		long longImei = Long.parseLong(imei.toString(),16);
-		String IMEIConv = Long.toHexString(longImei);
+		long longImei = Long.parseLong(1+imei.toString(),16);
+		String IMEIConv = String.valueOf(longImei);
 		System.out.println("IEMIConv:"+IMEIConv);
 		data.setIMEI(IMEIConv);
 		sb.setLength(0);
@@ -191,7 +192,7 @@ public class DataAnalysis {
 		System.out.println("type:"+type);
 		data.setType(type);
 		switch (type) {
-		case "9037":
+		case "9070":
 			returnStr = handle9037(lists, data);
 			break;
 			
@@ -237,6 +238,7 @@ public class DataAnalysis {
 		sb.append("0011");
 		sb.append(data.getEquipNo());
 		sb.append(9920);
+		returnSb.append(data.getEquipNo());
 		returnSb.append(9920);
 		Date date = new Date();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -249,7 +251,8 @@ public class DataAnalysis {
 				utc = 0 + utc;
 			}
 			sb.append(utc);
-			String returnStr = ExclTest.returnString(data.getEquipNo()+"9902"+utc);
+			returnSb.append(utc);
+			String returnStr = ExclTest.returnString(returnSb.toString());
 			sb.append(returnStr);
 //			sb.append(data.getCode());
 		}
@@ -258,6 +261,7 @@ public class DataAnalysis {
 			StringBuffer stringBuffer = new StringBuffer();
 			List<String> times = new ArrayList<String>();
 			String utcTime = sdf.format(date);
+			System.out.println("utcTime-----------"+utcTime);
 			for(int i =0;i<utcTime.length();i++){
 				stringBuffer.append(utcTime.charAt(i));
 				if(i%2!=0){
@@ -279,7 +283,7 @@ public class DataAnalysis {
 			String returnStr = ExclTest.returnString(returnSb.toString());
 //			sb.append(data.getCode());
 			sb.append(returnStr);
-			System.out.println("end");
+//			System.out.println("end");
 		}
 		
 		return sendTransf(sb.toString());
@@ -329,10 +333,10 @@ public class DataAnalysis {
 		for(int i = 0;i<datas.length;i++){
 			System.out.println(datas[i]);
 		}
-		System.out.println("data:"+datadata);
+//		System.out.println("data:"+datadata);
 		data.setData(datadata);
 		String code = lists.get(lists.size()-1);
-		System.out.println("code:"+code);
+//		System.out.println("code:"+code);
 		data.setCode(code);
 		
 		
@@ -340,10 +344,10 @@ public class DataAnalysis {
 		
 		sb.setLength(0);
 		sb.append(2626);
-		sb.append("000c");
+		sb.append("000d");
 		sb.append(data.getEquipNo());
-		sb.append(9937);
-		sb.append(9037);
+		sb.append(9970);
+		sb.append(9070);
 		sb.append(30);//第三个字节
 		sb.append(30);//第四个字节
 //		sb.append(30);//第五个字节
@@ -366,11 +370,16 @@ public class DataAnalysis {
 		System.out.println("data:"+dataStr);
 		String[] strs = dataStr.split("@");
 		String gpsStr = strs[0];
+		mapWatchData.setGpsInfo(gpsStr);
 		String stationStr = strs[1];
+		mapWatchData.setBtsInfo(stationStr);
 		String wifiStr = strs[2];
 		String eleStr = strs[3];
 		String gsensor = strs[4];
 		String acc = strs[5];
+		
+		
+		
 //		System.out.println(gpsStr);
 //		System.out.println(stationStr);
 //		System.out.println(wifiStr);
@@ -378,28 +387,29 @@ public class DataAnalysis {
 //		System.out.println(gsensor);
 //		System.out.println(acc);
 		System.out.println("gpsStr--------------------"+gpsStr);
-		if("00".equals(gpsStr)){
-			String[] gpsData  = gpsStr.split(",");
-//			for(int i = 0;i<gpsData.length;i++){
-//				System.out.println(gpsData[i]);
-//			}
-			gps.setDate(gpsData[0]);
-			gps.setTime(gpsData[1]);
-			String watchTime = gpsData[0]+gpsData[1];
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-			try {
-				Date watchDate = sdf.parse(watchTime);
-				sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				mapWatchData.setWatchDate(Timestamp.valueOf(sdf.format(watchDate)));//watch_date
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		String[] gpsData  = gpsStr.split(",");
+		gps.setDate(gpsData[0]);
+		gps.setTime(gpsData[1]);
+		String watchTime = gpsData[0]+gpsData[1];
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+		try {
+			Date watchDate = sdf.parse(watchTime);
+			sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			mapWatchData.setWatchDate(Timestamp.valueOf(sdf.format(watchDate)));//watch_date
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		System.out.println(gpsData[3]+","+gpsData[5]);
+		if(!(gpsData[3].isEmpty()&&gpsData[5].isEmpty())){
+			
 			
 			mapWatchData.setCreateDate(new Timestamp(System.currentTimeMillis()));//create_date
 			
 			gps.setIsPosition(gpsData[2]);
-			mapWatchData.setIsPosition(gpsData[2]);//定位类型
+//			mapWatchData.setIsPosition(gpsData[2]);//定位类型
+			mapWatchData.setIsPosition("A");
 			gps.setLatitude(gpsData[3]);
 			mapWatchData.setXloc(gpsData[3]);//纬度
 			gps.setLongitude(gpsData[5]);
@@ -424,10 +434,37 @@ public class DataAnalysis {
 			System.out.println(gps.getDirection());
 			System.out.println(gps.getAltitude());
 			
+			//保存数据
+//			Result result = gpsService.addGps(gps);
+//			return result.getMsg();
+			mapService.addMapDateDef(mapWatchData);//保存原始数据
+			System.out.println((new Timestamp(System.currentTimeMillis())).toString()+"原始数据保存成功");
+//			logger.info(mapWatchData.getIMEI()+":原始数据保存成功/"+(new Timestamp(System.currentTimeMillis())));
+			
+			//转换经纬度  WGS84---->GCJ02
+			double xloc = Double.parseDouble(mapWatchData.getXloc());
+			double yloc = Double.parseDouble(mapWatchData.getYloc());
+			TransGps transGps = new TransGps();
+			transGps = PositionUtil.gps84_To_Gcj02(xloc, yloc);
+			System.out.println("transGps:"+transGps);
+			mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
+			mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
+			
+			
+			mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+			System.out.println((new Timestamp(System.currentTimeMillis())).toString()+"转换数据保存成功");
+//			logger.info(mapWatchData.getIMEI()+":转换数据保存成功/"+(new Timestamp(System.currentTimeMillis())));
+			
+		}
+			
+//			for(int i = 0;i<gpsData.length;i++){
+//				System.out.println(gpsData[i]);
+//			}
 			
 			
 			
-		}else{
+			
+		else{
 			String result = "";
 			String url = "http://apilocate.amap.com/position";
 			UrlParam param = getUrlParam();
@@ -449,7 +486,7 @@ public class DataAnalysis {
 			map.put("imei", param.getImei());
 			map.put("cdma", 0);
 			map.put("network", "GPRS");
-			map.put("bts", param.getBts());
+			map.put("bts", cdma.toString());
 //			map.put("nearbts", param.getNearbts());
 			map.put("output", param.getOutput());
 			if(stations.length==1){
@@ -491,31 +528,52 @@ public class DataAnalysis {
 			
 			
 			//保存数据
-			mapWatchData.setWatchDate(new Timestamp(System.currentTimeMillis()));
+//			mapWatchData.setWatchDate(new Timestamp(System.currentTimeMillis()));
 			mapWatchData.setCreateDate(new Timestamp(System.currentTimeMillis()));
 			mapWatchData.setBat(Integer.parseInt(eleStr));//电量
 			mapWatchData.setXloc(lat);
 			mapWatchData.setYloc(log);
+			mapWatchData.setAddress(address);
+			mapWatchData.setIsPosition("V");
+			
+			//保存数据
+//			Result result = gpsService.addGps(gps);
+//			return result.getMsg();
+			mapService.addMapDateDef(mapWatchData);//保存原始数据
+			System.out.println("原始数据保存成功");
+			
+			//转换经纬度  WGS84---->GCJ02
+//			double xloc = Double.parseDouble(mapWatchData.getXloc());
+//			double yloc = Double.parseDouble(mapWatchData.getYloc());
+//			TransGps transGps = new TransGps();
+//			transGps = PositionUtil.gps84_To_Gcj02(xloc, yloc);
+//			System.out.println("transGps:"+transGps);
+//			mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
+//			mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
+			
+			
+			mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+			System.out.println("转换数据保存成功");
 		}
 		
 		//保存数据
 //		Result result = gpsService.addGps(gps);
 //		return result.getMsg();
-		mapService.addMapDateDef(mapWatchData);//保存原始数据
-		System.out.println("原始数据保存成功");
-		
-		//转换经纬度  WGS84---->GCJ02
-		double xloc = Double.parseDouble(mapWatchData.getXloc());
-		double yloc = Double.parseDouble(mapWatchData.getYloc());
-		TransGps transGps = new TransGps();
-		transGps = PositionUtil.gps84_To_Gcj02(xloc, yloc);
-		System.out.println("transGps:"+transGps);
-		mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
-		mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
-		
-		
-		mapService.addMapDateAct(mapWatchData);//保存转换后的数据
-		System.out.println("转换数据保存成功");
+//		mapService.addMapDateDef(mapWatchData);//保存原始数据
+//		System.out.println("原始数据保存成功");
+//		
+//		//转换经纬度  WGS84---->GCJ02
+//		double xloc = Double.parseDouble(mapWatchData.getXloc());
+//		double yloc = Double.parseDouble(mapWatchData.getYloc());
+//		TransGps transGps = new TransGps();
+//		transGps = PositionUtil.gps84_To_Gcj02(xloc, yloc);
+//		System.out.println("transGps:"+transGps);
+//		mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
+//		mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
+//		
+//		
+//		mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+//		System.out.println("转换数据保存成功");
 		
 		return null;
 		
