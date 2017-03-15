@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 
+
+
 import net.sf.json.JSONObject;
 
 import com.dk.object.Cdma;
@@ -41,6 +43,9 @@ public class DataAnalysis {
 //		for(String data:datas){
 //			System.out.println(data);
 //		}
+		
+		String str = "262600263524";
+		System.out.println(sendTransf(str));
 	}
 	
 	
@@ -58,7 +63,7 @@ public class DataAnalysis {
 			}
 		}
 		
-		for(int i=0;i<datas.size()-1;i++){
+		for(int i=0;i<datas.size();i++){
 			String data = datas.get(i);
 			if(data.equals("24")){
 				datas.add(i+1,"00");
@@ -196,9 +201,9 @@ public class DataAnalysis {
 			returnStr = handle9037(lists, data);
 			break;
 			
-//		case "9036":
-//			returnStr = handle9036(lists,data);
-//			break;
+		case "9036":
+			returnStr = handle9036(lists,data);
+			break;
 			
 		case "9020":
 			returnStr = handle9020(lists,data);
@@ -303,20 +308,132 @@ public class DataAnalysis {
 //			System.out.println(datas[i]);
 //		}
 		data.setData(dataStr);
-		data.setCode(lists.get(lists.size()-1));
 		
-		//处理data
+		String stationStr = dataStr.split("@")[1];
 		
+		String result = "";
+		String url = "http://apilocate.amap.com/position";
+		UrlParam param = getUrlParam();
+		param.setImei(data.getIMEI());
+		
+		String[] stations = stationStr.split("-");
+		String[] station = stations[0].split(",");
+		Cdma cdma = new Cdma();
+		List<Cdma> nearCdmas = new ArrayList<Cdma>();
+		cdma.setCellid(Integer.parseInt(station[0]));
+		cdma.setLac(Integer.parseInt(station[1]));
+		cdma.setMcc(Integer.parseInt(station[2]));
+		cdma.setMnc(Integer.parseInt(station[3]));
+		cdma.setSignal(Integer.parseInt(station[4]));
+		
+		Map<String,Object> map = new HashMap<String,Object>();
+		map.put("key", param.getKey());
+		map.put("accesstype", param.getAccesstype());
+		map.put("imei", param.getImei());
+		map.put("cdma", 0);
+		map.put("network", "GPRS");
+		map.put("bts", cdma.toString());
+//		map.put("nearbts", param.getNearbts());
+		map.put("output", param.getOutput());
+		if(stations.length==1){
+			result = UrlConnection.sendGet(url, map);
+			System.out.println(result);
+		}else{
+			StringBuffer nearbts = new StringBuffer();
+			for(int i=1;i<stations.length;i++){
+				String[] nearStation = stations[i].split(",");
+				Cdma nearCdma = new Cdma();
+				nearCdma.setCellid(Integer.parseInt(nearStation[0]));
+				nearCdma.setLac(Integer.parseInt(nearStation[1]));
+				nearCdma.setMcc(Integer.parseInt(nearStation[2]));
+				nearCdma.setMnc(Integer.parseInt(nearStation[3]));
+				nearCdma.setSignal(Integer.parseInt(nearStation[4]));
+				nearCdmas.add(nearCdma);
+			}
+			
+			for(Cdma nearCdma:nearCdmas){
+				nearbts.append(nearCdma.toString());
+				nearbts.append("|");
+			}
+			
+			String btsParam = nearbts.toString();
+			
+			map.put("nearbts", btsParam.substring(0,btsParam.length()-1));
+			result = UrlConnection.sendGet(url, map);
+			System.out.println(result);
+		}
+		
+		
+		
+		//返回数据
+		List<String> lengthData = new ArrayList<String>();
+		StringBuffer returnData = new StringBuffer();
+		JSONObject json = JSONObject.fromObject(result);
+		String location = json.getJSONObject("result").getString("location");
 		sb.setLength(0);
-		sb.append(2626);
-		sb.append("001d");
-		sb.append(data.getEquipNo());
-		sb.append(9936);
-		sb.append(9036);
+//		sb.append(2626);
+		
+		lengthData.add("2626");
+		lengthData.add(data.getEquipNo());
+		lengthData.add("9936");
+		lengthData.add("9036");
+		
+//		sb.append(data.getEquipNo());
+		returnData.append(data.getEquipNo());
+//		sb.append(9936);
+		returnData.append(9936);
+//		sb.append(9036);
+		returnData.append(9036);
+		for(int i =0;i<location.length();i++){
+			int k = (int)location.charAt(i);
+			String kStr = Integer.toHexString(k);
+			if(kStr.length()<2){
+				kStr = "0" + kStr;
+			}
+//			sb.append(kStr);
+			
+			lengthData.add(kStr);
+			
+			returnData.append(kStr);
+		}
+		
+		String returnStr = ExclTest.returnString(returnData.toString());
+		if(returnStr.length()<2){
+			returnStr = "0"+returnStr;
+		}
+//		if(returnStr.equals("24")){
+//			returnStr = "2400";
+//		}
+//		if(returnStr.equals("26")){
+//			returnStr = "2402";
+//		}
+		
+		lengthData.add(returnStr);
+		
+		
+		int length = 6 + 2 + 2 + location.length() + 1;
+		if(returnStr.equals("24")||returnStr.equals("26")){
+			length = length + 1;
+		}
+		
+		String dataLength = Integer.toHexString(length);
+		for(int i = dataLength.length();i<4;i++){
+			dataLength = "0" + dataLength;
+		}
+		System.out.println("dataLength--------"+dataLength);
+//		sb.append(dataLength);
+//		sb.insert(1, dataLength);
+		
+		
+		lengthData.add(1,dataLength);
+//		sb.append(returnStr);
+		
+		for(String str:lengthData){
+			sb.append(str);
+		}
 		
 		//报文体
 		
-		sb.append(data.getCode());
 		
 		return sendTransf(sb.toString());
 	}
