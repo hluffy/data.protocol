@@ -23,8 +23,8 @@ public class MapWatchDataServiceImpl implements MapWatchDataService{
 			conn = DBUtil.getConnection();
 			ps = conn.prepareStatement(sql);
 			ps.setString(1, data.getIMEI());
-			ps.setString(2, data.getXloc());
-			ps.setString(3, data.getYloc());
+			ps.setString(2, data.getYloc());
+			ps.setString(3, data.getXloc());
 			ps.setInt(4, data.getBat());
 			ps.setInt(5, data.getRssi());
 			ps.setInt(6, data.getSos());
@@ -78,8 +78,8 @@ public class MapWatchDataServiceImpl implements MapWatchDataService{
 			conn = DBUtil.getConnection();
 			ps = conn.prepareStatement(sql);
 			ps.setString(1, data.getIMEI());
-			ps.setString(2, data.getXloc());
-			ps.setString(3, data.getYloc());
+			ps.setString(2, data.getYloc());
+			ps.setString(3, data.getXloc());
 			ps.setInt(4, data.getBat());
 			ps.setInt(5, data.getRssi());
 			ps.setInt(6, data.getSos());
