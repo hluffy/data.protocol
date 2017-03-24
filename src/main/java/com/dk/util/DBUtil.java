@@ -41,6 +41,10 @@ public class DBUtil {
 			String password = prop.getProperty("password");
 			int maxActive = Integer.parseInt(prop.getProperty("maxactive"));
 			int maxWait = Integer.parseInt(prop.getProperty("maxwait"));
+			boolean removeAbandoned = Boolean.parseBoolean(prop.getProperty("removeAbandoned"));
+			int removeAbandonedTimeout = Integer.parseInt(prop.getProperty("removeAbandonedTimeout"));
+			int timeBetweenEvictionRunsMillis = Integer.parseInt(prop.getProperty("timeBetweenEvictionRunsMillis"));
+			int numTestsPerEvictionRun = Integer.parseInt(prop.getProperty("numTestsPerEvictionRun"));
 			//初始化连接池
 			ds = new BasicDataSource();
 			//将JDBC建立连接所需要的信息设置到连接池中
@@ -57,6 +61,11 @@ public class DBUtil {
 			ds.setMaxActive(maxActive);
 			//设置最大等待时间
 			ds.setMaxWait(maxWait);
+			
+			ds.setRemoveAbandoned(removeAbandoned);
+			ds.setRemoveAbandonedTimeout(removeAbandonedTimeout);
+			ds.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
+			ds.setNumTestsPerEvictionRun(numTestsPerEvictionRun);
 			
 			
 		} catch (FileNotFoundException e) {

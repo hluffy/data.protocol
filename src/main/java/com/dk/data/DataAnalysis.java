@@ -175,6 +175,9 @@ public class DataAnalysis {
 //		getListString();
 		List<String> lists = getListString(strs);
 //		String str = analysisData(lists);
+		if(lists.size()==0){
+			return null;
+		}
 		String str = lists.get(2)+lists.get(3);
 		int length = Integer.parseInt(str,16);
 		data.setLength(length);

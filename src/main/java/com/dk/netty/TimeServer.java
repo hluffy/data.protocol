@@ -30,6 +30,7 @@ public class TimeServer {
             // 等待服务端监听端口关闭
             f.channel().closeFuture().sync();
         } finally {
+        	Thread.sleep(1000);
             // 优雅退出，释放线程池资源
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
@@ -41,7 +42,7 @@ public class TimeServer {
         protected void initChannel(SocketChannel arg0) throws Exception {
             System.out.println("server initChannel..");
             arg0.pipeline().addLast(new TimeServerHandler());
-            arg0.pipeline().addLast(new LengthFieldBasedFrameDecoder(1000,2,2,0,0,true));
+            arg0.pipeline().addLast(new LengthFieldBasedFrameDecoder(1000,2,2,0,0,false));
         }
     }
 

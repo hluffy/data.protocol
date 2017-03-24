@@ -93,6 +93,9 @@ public class TimeServerHandler extends ChannelInboundHandlerAdapter {
 //        }
         
         String hexString = DataAnalysis.analysisData(datas);
+        if(hexString==null){
+        	return;
+        }
     	System.out.println(hexString);
     	hexString = hexString.toLowerCase();
         int length = hexString.length() / 2;   

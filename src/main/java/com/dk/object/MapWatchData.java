@@ -1,8 +1,13 @@
 package com.dk.object;
 
+import java.io.Serializable;
 import java.sql.Timestamp;
 
-public class MapWatchData {
+public class MapWatchData implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3441271979679748495L;
 	private long id;
 	private String IMEI;
 	private String xloc;
