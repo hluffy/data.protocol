@@ -24,6 +24,8 @@ public class MapWatchData implements Serializable{
 	private String gpsInfo;
 	private String btsInfo;
 	
+	private String area;
+	
 	public long getId() {
 		return id;
 	}
@@ -107,6 +109,12 @@ public class MapWatchData implements Serializable{
 	}
 	public void setBtsInfo(String btsInfo) {
 		this.btsInfo = btsInfo;
+	}
+	public String getArea() {
+		return area;
+	}
+	public void setArea(String area) {
+		this.area = area;
 	}
 	
 

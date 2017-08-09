@@ -12,17 +12,32 @@ import java.util.Map;
 
 
 
+
+
+
+
+
+
+
+
 import net.sf.json.JSONObject;
 
 import com.dk.object.Cdma;
 import com.dk.object.Data;
+import com.dk.object.FenceInfo;
 import com.dk.object.GPS;
 import com.dk.object.MapWatchData;
 import com.dk.object.TransGps;
 import com.dk.object.UrlParam;
+import com.dk.object.WarningInfo;
+import com.dk.service.FenceService;
 import com.dk.service.MapWatchDataService;
+import com.dk.service.WarningService;
+import com.dk.serviceImpl.FenceServiceImpl;
 import com.dk.serviceImpl.MapWatchDataServiceImpl;
+import com.dk.serviceImpl.WarningServiceImpl;
 import com.dk.url.UrlConnection;
+import com.dk.util.DistanceUtil;
 
 public class DataAnalysis {
 	
@@ -562,18 +577,133 @@ public class DataAnalysis {
 //			logger.info(mapWatchData.getIMEI()+":原始数据保存成功/"+(new Timestamp(System.currentTimeMillis())));
 			
 			//转换经纬度  WGS84---->GCJ02
+//			double xloc = Double.parseDouble(mapWatchData.getXloc());
+//			double yloc = Double.parseDouble(mapWatchData.getYloc());
+//			TransGps transGps = new TransGps();
+//			transGps = PositionUtil.gps84_To_Gcj02(xloc, yloc);
+//			System.out.println("transGps:"+transGps);
+//			mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
+//			mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
+			
+			String result = "";
+			UrlParam param = getUrlParam();
+			//将坐标转为高德地图坐标
 			double xloc = Double.parseDouble(mapWatchData.getXloc());
 			double yloc = Double.parseDouble(mapWatchData.getYloc());
-			TransGps transGps = new TransGps();
-			transGps = PositionUtil.gps84_To_Gcj02(xloc, yloc);
-			System.out.println("transGps:"+transGps);
-			mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
-			mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
+			String locUrl = "http://restapi.amap.com/v3/assistant/coordinate/convert";
+			Map<String,Object> locMap = new HashMap<String,Object>();
+			locMap.put("key", param.getKey());
+			locMap.put("locations", yloc+","+xloc);
+			locMap.put("coordsys", "gps");
+			locMap.put("output", param.getOutput());
+			result = UrlConnection.sendGet(locUrl, locMap);
+			JSONObject locJson = JSONObject.fromObject(result);
+			String locations = locJson.getString("locations");
+			System.out.println(locations);
+			String[] localArray = locations.split(",");
+			mapWatchData.setYloc(localArray[0]);
+			mapWatchData.setXloc(localArray[1]);
 			
+			//根据经纬度获取高德位置信息
+			
+			String url = "http://restapi.amap.com/v3/geocode/regeo";
+			
+			Map<String,Object> map = new HashMap<String,Object>();
+			
+			map.put("key", param.getKey());
+			map.put("location", mapWatchData.getYloc()+","+mapWatchData.getXloc());
+			map.put("output", param.getOutput());
+			
+			result = UrlConnection.sendGet(url, map);
+			JSONObject json = JSONObject.fromObject(result);
+//			if(json.getJSONObject("status").toString()=="1"){
+				String formatAddress = json.getJSONObject("regeocode").getString("formatted_address");
+				System.out.println(formatAddress);
+				
+				mapWatchData.setAddress(formatAddress);
+//			}
+				
+			FenceService fServer = new FenceServiceImpl();
+			List<FenceInfo> infos = fServer.getInfos(mapWatchData.getIMEI());
+			System.out.println("size-------------------------------------------------"+infos.size());
+			String area = "";
+			for (FenceInfo info : infos) {
+				double d = DistanceUtil.GetDistance(Double.parseDouble(mapWatchData.getYloc()), Double.parseDouble(mapWatchData.getXloc()), info.getLongitude(), info.getLatitude());
+				System.out.println(d);
+				System.out.println(info.getRadius());
+				if(d<=info.getRadius()){
+					area = info.getId().toString();
+					break;
+				}
+			}
+			if(area.isEmpty()){
+				area = "其他";
+			}
+			mapWatchData.setArea(area);
+				
 			
 			mapService.addMapDateAct(mapWatchData);//保存转换后的数据
 			System.out.println((new Timestamp(System.currentTimeMillis())).toString()+"转换数据保存成功");
 //			logger.info(mapWatchData.getIMEI()+":转换数据保存成功/"+(new Timestamp(System.currentTimeMillis())));
+			
+			List<MapWatchData> mInfos = mapService.getInfos(mapWatchData);
+			String lArea = null;
+			String bArea = null;
+			if(mInfos.size()>=2){
+				lArea = mInfos.get(0).getArea();//当前位置
+				bArea = mInfos.get(1).getArea();//上次位置
+				System.out.println("lArea---------"+lArea+";bArea------------------"+bArea);
+				
+				List<FenceInfo> fInfos = fServer.getInfosAsImei(mapWatchData.getIMEI());
+				WarningInfo wInfo = null;
+				for (FenceInfo fInfo : fInfos) {
+					String state = fInfo.getSettingInfo().getState();
+					String type = fInfo.getSettingInfo().getType();
+					String fArea = fInfo.getId().toString();
+					if(!"0".equals(state)&&lArea!=null&&bArea!=null&&!lArea.equals(bArea)&&lArea.equals(fArea)||bArea.equals(fArea)){
+						if("0".equals(type)){
+							wInfo = new WarningInfo();
+							wInfo.setEquipmentNum(mapWatchData.getIMEI());
+							wInfo.setType(type);
+							if(!lArea.equals("其他")){
+								wInfo.setArea(lArea);
+								wInfo.setDescription("进入");
+							}else{
+								wInfo.setArea(bArea);
+								wInfo.setDescription("离开");
+							}
+							
+							break;
+							
+							
+						}else if("1".equals(type)&&bArea.equals("其他")){
+							wInfo = new WarningInfo();
+							wInfo.setEquipmentNum(mapWatchData.getIMEI());
+							wInfo.setType(type);
+							wInfo.setDescription("进入");
+							wInfo.setArea(lArea);
+							break;
+							
+						}else if("2".equals(type)&&lArea.equals("其他")){
+							wInfo = new WarningInfo();
+							wInfo.setEquipmentNum(mapWatchData.getIMEI());
+							wInfo.setType(type);
+							wInfo.setDescription("离开");
+							wInfo.setArea(bArea);
+							break;
+							
+						}
+					}
+					
+				}
+				
+				if(wInfo!=null){
+					WarningService wService = new WarningServiceImpl();
+					wService.add(wInfo);
+					System.out.println("添加报警");
+				}
+			}
+			
 			
 		}
 			
@@ -671,9 +801,88 @@ public class DataAnalysis {
 //			mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
 //			mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
 			
+			FenceService fServer = new FenceServiceImpl();
+			List<FenceInfo> infos = fServer.getInfos(mapWatchData.getIMEI());
+			System.out.println("size-------------------------------------------------"+infos.size());
+			String area = "";
+			for (FenceInfo info : infos) {
+				double d = DistanceUtil.GetDistance(Double.parseDouble(mapWatchData.getYloc()), Double.parseDouble(mapWatchData.getXloc()), info.getLongitude(), info.getLatitude());
+				System.out.println(d);
+				System.out.println(info.getRadius());
+				if(d<=info.getRadius()){
+					area = info.getId().toString();
+					break;
+				}
+			}
+			if(area.isEmpty()){
+				area = "其他";
+			}
+			mapWatchData.setArea(area);
+			
+			
 			
 			mapService.addMapDateAct(mapWatchData);//保存转换后的数据
 			System.out.println("转换数据保存成功");
+			
+			
+			List<MapWatchData> mInfos = mapService.getInfos(mapWatchData);
+			String lArea = null;
+			String bArea = null;
+			if(mInfos.size()>=2){
+				lArea = mInfos.get(0).getArea();//当前位置
+				bArea = mInfos.get(1).getArea();//上次位置
+				
+				List<FenceInfo> fInfos = fServer.getInfosAsImei(mapWatchData.getIMEI());
+				WarningInfo wInfo = null;
+				for (FenceInfo fInfo : fInfos) {
+					String state = fInfo.getSettingInfo().getState();
+					String type = fInfo.getSettingInfo().getType();
+					String fArea = fInfo.getId().toString();
+					if(!"0".equals(state)&&lArea!=null&&bArea!=null&&!lArea.equals(bArea)&&lArea.equals(fArea)||bArea.equals(fArea)){
+						if("0".equals(type)){
+							wInfo = new WarningInfo();
+							wInfo.setEquipmentNum(mapWatchData.getIMEI());
+							wInfo.setType(type);
+							if(!lArea.equals("其他")){
+								wInfo.setArea(lArea);
+								wInfo.setDescription("进入");
+							}else{
+								wInfo.setArea(bArea);
+								wInfo.setDescription("离开");
+							}
+							
+							break;
+							
+							
+						}else if("1".equals(type)&&bArea.equals("其他")){
+							wInfo = new WarningInfo();
+							wInfo.setEquipmentNum(mapWatchData.getIMEI());
+							wInfo.setType(type);
+							wInfo.setDescription("进入");
+							wInfo.setArea(lArea);
+							break;
+							
+						}else if("2".equals(type)&&lArea.equals("其他")){
+							wInfo = new WarningInfo();
+							wInfo.setEquipmentNum(mapWatchData.getIMEI());
+							wInfo.setType(type);
+							wInfo.setDescription("离开");
+							wInfo.setArea(bArea);
+							break;
+							
+						}
+					}
+					
+				}
+				
+				if(wInfo!=null){
+					WarningService wService = new WarningServiceImpl();
+					wService.add(wInfo);
+					System.out.println("添加报警");
+				}
+			}
+			
+			
 		}
 		
 		//保存数据
