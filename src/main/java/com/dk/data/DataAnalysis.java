@@ -20,24 +20,36 @@ import java.util.Map;
 
 
 
+
+
+
+
+
+
 import net.sf.json.JSONObject;
 
 import com.dk.object.Cdma;
 import com.dk.object.Data;
+import com.dk.object.Fence;
 import com.dk.object.FenceInfo;
 import com.dk.object.GPS;
 import com.dk.object.MapWatchData;
 import com.dk.object.TransGps;
 import com.dk.object.UrlParam;
+import com.dk.object.UserInfo;
+import com.dk.object.Warning;
 import com.dk.object.WarningInfo;
 import com.dk.service.FenceService;
 import com.dk.service.MapWatchDataService;
+import com.dk.service.UserService;
 import com.dk.service.WarningService;
 import com.dk.serviceImpl.FenceServiceImpl;
 import com.dk.serviceImpl.MapWatchDataServiceImpl;
+import com.dk.serviceImpl.UserServiceImpl;
 import com.dk.serviceImpl.WarningServiceImpl;
 import com.dk.url.UrlConnection;
 import com.dk.util.DistanceUtil;
+import com.dk.util.IsInArea;
 
 public class DataAnalysis {
 	
@@ -623,95 +635,118 @@ public class DataAnalysis {
 				mapWatchData.setAddress(formatAddress);
 //			}
 				
-			FenceService fServer = new FenceServiceImpl();
-			List<FenceInfo> infos = fServer.getInfos(mapWatchData.getIMEI());
-			System.out.println("size-------------------------------------------------"+infos.size());
-			String area = "";
-			for (FenceInfo info : infos) {
-				double d = DistanceUtil.GetDistance(Double.parseDouble(mapWatchData.getYloc()), Double.parseDouble(mapWatchData.getXloc()), info.getLongitude(), info.getLatitude());
-				System.out.println(d);
-				System.out.println(info.getRadius());
-				if(d<=info.getRadius()){
-					area = info.getId().toString();
-					break;
-				}
-			}
-			if(area.isEmpty()){
-				area = "其他";
-			}
-			mapWatchData.setArea(area);
+
 				
-			
-			mapService.addMapDateAct(mapWatchData);//保存转换后的数据
-			System.out.println((new Timestamp(System.currentTimeMillis())).toString()+"转换数据保存成功");
-//			logger.info(mapWatchData.getIMEI()+":转换数据保存成功/"+(new Timestamp(System.currentTimeMillis())));
-			
-			List<MapWatchData> mInfos = mapService.getInfos(mapWatchData);
-			String lArea = null;
-			String bArea = null;
-			if(mInfos.size()>=2){
-				lArea = mInfos.get(0).getArea();//当前位置
-				bArea = mInfos.get(1).getArea();//上次位置
-				System.out.println("lArea---------"+lArea+";bArea------------------"+bArea);
-				
-				List<FenceInfo> fInfos = fServer.getInfosAsImei(mapWatchData.getIMEI());
-				WarningInfo wInfo = null;
-				for (FenceInfo fInfo : fInfos) {
-					String state = fInfo.getSettingInfo().getState();
-					String type = fInfo.getSettingInfo().getType();
-					String fArea = fInfo.getId().toString();
-					if(!"0".equals(state)&&lArea!=null&&bArea!=null&&!lArea.equals(bArea)&&lArea.equals(fArea)||bArea.equals(fArea)){
-						if("0".equals(type)){
-							wInfo = new WarningInfo();
-							wInfo.setEquipmentNum(mapWatchData.getIMEI());
-							wInfo.setType(type);
-							if(!lArea.equals("其他")){
-								wInfo.setArea(lArea);
-								wInfo.setDescription("进入");
-							}else{
-								wInfo.setArea(bArea);
-								wInfo.setDescription("离开");
-							}
-							
-							break;
-							
-							
-						}else if("1".equals(type)&&bArea.equals("其他")){
-							wInfo = new WarningInfo();
-							wInfo.setEquipmentNum(mapWatchData.getIMEI());
-							wInfo.setType(type);
-							wInfo.setDescription("进入");
-							wInfo.setArea(lArea);
-							break;
-							
-						}else if("2".equals(type)&&lArea.equals("其他")){
-							wInfo = new WarningInfo();
-							wInfo.setEquipmentNum(mapWatchData.getIMEI());
-							wInfo.setType(type);
-							wInfo.setDescription("离开");
-							wInfo.setArea(bArea);
-							break;
-							
-						}
+					//////////////////////////////////////////////////////////////////////////
+					//																		//
+					//		判断该设备状态是否 开启 根据设备编号查询用户表，查看设备状态字段，1为开启，0为关闭			//
+					//		开启的话保存转换数据													//
+					//																		//
+					//		根据设备编号查询该用户属于哪个电子围栏，判断定位数据是否在所属的围栏内					//
+					//		根据上次定位和这次定位判断用户是出围栏还是进围栏，添加报警信息							//
+					//																		//
+					//////////////////////////////////////////////////////////////////////////
+		
+			//查询设备状态
+			UserService userServer = new UserServiceImpl();
+			UserInfo userInfo = userServer.getUserInfo(mapWatchData.getIMEI());
+			if(userInfo!=null && userInfo.getEquipstate()==1){
+				//设备状态开启时
+				if("4".equals(userInfo.getRole())){
+					FenceService fServer = new FenceServiceImpl();
+					Fence fence = fServer.getFenceInfo(userInfo.getRid());
+					List<Map<String,Double>> maps = new ArrayList<Map<String,Double>>();
+					Map<String,Double> locmap = new HashMap<String,Double>();
+					locmap.put("lng", Double.parseDouble(fence.getXloc()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc()));
+					maps.add(locmap);
+					
+					locmap.put("lng", Double.parseDouble(fence.getXloc1()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc1()));
+					maps.add(locmap);
+					
+					locmap.put("lng", Double.parseDouble(fence.getXloc2()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc2()));
+					maps.add(locmap);
+					
+					locmap.put("lng", Double.parseDouble(fence.getXloc3()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc3()));
+					maps.add(locmap);
+					
+					boolean isin = IsInArea.isInArea(Double.parseDouble(mapWatchData.getYloc()), Double.parseDouble(mapWatchData.getXloc()), maps);
+					if(isin){
+						mapWatchData.setArea("1");
+						userServer.updateUserInfo(1,mapWatchData.getIMEI());
+					}else{
+						mapWatchData.setArea("0");
+						userServer.updateUserInfo(0,mapWatchData.getIMEI());
 					}
 					
+					mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+					System.out.println("转换数据保存成功");
+					
+					if("4".equals(userInfo.getRole())){
+						List<MapWatchData> mInfos = mapService.getInfos(mapWatchData);
+						String lArea = null;
+						String bArea = null;
+						if(mInfos.size()>=2){
+							lArea = mInfos.get(0).getArea();//当前位置
+							bArea = mInfos.get(1).getArea();//上次位置
+							String state = fence.getState();
+							String startdate = fence.getStartDate();
+							String enddate = fence.getEndDate();
+							SimpleDateFormat sdfstr = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+							
+							try {
+								if(!"0".equals(state)&&lArea!=null&&bArea!=null&&!lArea.equals(bArea)&&(startdate==null||enddate==null||sdfstr.parse(startdate).getTime()<System.currentTimeMillis())&&sdfstr.parse(enddate).getTime()>System.currentTimeMillis()){
+									String type = fence.getWarningType();
+									WarningService wService = new WarningServiceImpl();
+									Warning wInfo = new Warning();
+									wInfo.setName(fence.getName());
+									wInfo.setImei(mapWatchData.getIMEI());
+									wInfo.setFid(fence.getId());
+									if("0".equals(type)){
+										if("0".equals(lArea)){
+											wInfo.setWarningType("1");
+											wInfo.setType2("离开");
+										}else{
+											wInfo.setWarningType("2");
+											wInfo.setType2("进入");
+										}
+									}else if("1".equals(type)&&"0".equals(lArea)){
+										wInfo.setWarningType("1");
+										wInfo.setType2("离开");
+									}else if("2".equals(type)&&"1".equals(lArea)){
+										wInfo.setWarningType("2");
+										wInfo.setType2("进入");
+									}
+									
+									wService.addWarningInfo(wInfo);
+									System.out.println("添加报警");
+								}
+							} catch (ParseException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							
+						}
+					}else{
+						mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+						System.out.println("转换数据保存成功");
+					}
 				}
 				
-				if(wInfo!=null){
-					WarningService wService = new WarningServiceImpl();
-					wService.add(wInfo);
-					System.out.println("添加报警");
-				}
+			}else if(userInfo == null){
+				//用户信息不存在时
+				mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+				System.out.println("转换数据保存成功");
+			}else{
+				//设备状态关闭时
+				
 			}
-			
+				
 			
 		}
-			
-//			for(int i = 0;i<gpsData.length;i++){
-//				System.out.println(gpsData[i]);
-//			}
-			
-			
 			
 			
 		else{
@@ -801,86 +836,108 @@ public class DataAnalysis {
 //			mapWatchData.setXloc(String.valueOf(transGps.getWgLat()));
 //			mapWatchData.setYloc(String.valueOf(transGps.getWgLon()));
 			
-			FenceService fServer = new FenceServiceImpl();
-			List<FenceInfo> infos = fServer.getInfos(mapWatchData.getIMEI());
-			System.out.println("size-------------------------------------------------"+infos.size());
-			String area = "";
-			for (FenceInfo info : infos) {
-				double d = DistanceUtil.GetDistance(Double.parseDouble(mapWatchData.getYloc()), Double.parseDouble(mapWatchData.getXloc()), info.getLongitude(), info.getLatitude());
-				System.out.println(d);
-				System.out.println(info.getRadius());
-				if(d<=info.getRadius()){
-					area = info.getId().toString();
-					break;
-				}
-			}
-			if(area.isEmpty()){
-				area = "其他";
-			}
-			mapWatchData.setArea(area);
 			
+					//////////////////////////////////////////////////////////////////////////
+					//																		//
+					//		判断该设备状态是否 开启 根据设备编号查询用户表，查看设备状态字段，1为开启，0为关闭			//
+					//		开启的话保存转换数据													//
+					//																		//
+					//		根据设备编号查询该用户属于哪个电子围栏，判断定位数据是否在所属的围栏内					//
+					//		根据上次定位和这次定位判断用户是出围栏还是进围栏，添加报警信息							//
+					//																		//
+					//////////////////////////////////////////////////////////////////////////
 			
-			
-			mapService.addMapDateAct(mapWatchData);//保存转换后的数据
-			System.out.println("转换数据保存成功");
-			
-			
-			List<MapWatchData> mInfos = mapService.getInfos(mapWatchData);
-			String lArea = null;
-			String bArea = null;
-			if(mInfos.size()>=2){
-				lArea = mInfos.get(0).getArea();//当前位置
-				bArea = mInfos.get(1).getArea();//上次位置
-				
-				List<FenceInfo> fInfos = fServer.getInfosAsImei(mapWatchData.getIMEI());
-				WarningInfo wInfo = null;
-				for (FenceInfo fInfo : fInfos) {
-					String state = fInfo.getSettingInfo().getState();
-					String type = fInfo.getSettingInfo().getType();
-					String fArea = fInfo.getId().toString();
-					if(!"0".equals(state)&&lArea!=null&&bArea!=null&&!lArea.equals(bArea)&&lArea.equals(fArea)||bArea.equals(fArea)){
-						if("0".equals(type)){
-							wInfo = new WarningInfo();
-							wInfo.setEquipmentNum(mapWatchData.getIMEI());
-							wInfo.setType(type);
-							if(!lArea.equals("其他")){
-								wInfo.setArea(lArea);
-								wInfo.setDescription("进入");
-							}else{
-								wInfo.setArea(bArea);
-								wInfo.setDescription("离开");
-							}
-							
-							break;
-							
-							
-						}else if("1".equals(type)&&bArea.equals("其他")){
-							wInfo = new WarningInfo();
-							wInfo.setEquipmentNum(mapWatchData.getIMEI());
-							wInfo.setType(type);
-							wInfo.setDescription("进入");
-							wInfo.setArea(lArea);
-							break;
-							
-						}else if("2".equals(type)&&lArea.equals("其他")){
-							wInfo = new WarningInfo();
-							wInfo.setEquipmentNum(mapWatchData.getIMEI());
-							wInfo.setType(type);
-							wInfo.setDescription("离开");
-							wInfo.setArea(bArea);
-							break;
-							
-						}
+			//查询设备状态
+			UserService userServer = new UserServiceImpl();
+			UserInfo userInfo = userServer.getUserInfo(mapWatchData.getIMEI());
+			if(userInfo!=null && userInfo.getEquipstate()==1){
+				//设备状态开启时
+				if("4".equals(userInfo.getRole())){
+					FenceService fServer = new FenceServiceImpl();
+					Fence fence = fServer.getFenceInfo(userInfo.getRid());
+					List<Map<String,Double>> maps = new ArrayList<Map<String,Double>>();
+					Map<String,Double> locmap = new HashMap<String,Double>();
+					locmap.put("lng", Double.parseDouble(fence.getXloc()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc()));
+					maps.add(locmap);
+					
+					locmap.put("lng", Double.parseDouble(fence.getXloc1()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc1()));
+					maps.add(locmap);
+					
+					locmap.put("lng", Double.parseDouble(fence.getXloc2()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc2()));
+					maps.add(locmap);
+					
+					locmap.put("lng", Double.parseDouble(fence.getXloc3()));
+					locmap.put("lat", Double.parseDouble(fence.getYloc3()));
+					maps.add(locmap);
+					
+					boolean isin = IsInArea.isInArea(Double.parseDouble(mapWatchData.getYloc()), Double.parseDouble(mapWatchData.getXloc()), maps);
+					if(isin){
+						mapWatchData.setArea("1");
+						userServer.updateUserInfo(1,mapWatchData.getIMEI());
+					}else{
+						mapWatchData.setArea("0");
+						userServer.updateUserInfo(0,mapWatchData.getIMEI());
 					}
 					
+					mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+					System.out.println("转换数据保存成功");
+					
+					if("4".equals(userInfo.getRole())){
+						List<MapWatchData> mInfos = mapService.getInfos(mapWatchData);
+						String lArea = null;
+						String bArea = null;
+						if(mInfos.size()>=2){
+							lArea = mInfos.get(0).getArea();//当前位置
+							bArea = mInfos.get(1).getArea();//上次位置
+							String state = fence.getState();
+							
+							if(!"0".equals(state)&&lArea!=null&&bArea!=null&&!lArea.equals(bArea)){
+								String type = fence.getWarningType();
+								WarningService wService = new WarningServiceImpl();
+								Warning wInfo = new Warning();
+								wInfo.setName(fence.getName());
+								wInfo.setImei(mapWatchData.getIMEI());
+								wInfo.setFid(fence.getId());
+								if("0".equals(type)){
+									if("0".equals(lArea)){
+										wInfo.setWarningType("1");
+										wInfo.setType2("离开");
+									}else{
+										wInfo.setWarningType("2");
+										wInfo.setType2("进入");
+									}
+								}else if("1".equals(type)&&"0".equals(lArea)){
+									wInfo.setWarningType("1");
+									wInfo.setType2("离开");
+								}else if("2".equals(type)&&"1".equals(lArea)){
+									wInfo.setWarningType("2");
+									wInfo.setType2("进入");
+								}
+								
+								wService.addWarningInfo(wInfo);
+								System.out.println("添加报警");
+							}
+							
+						}
+					}else{
+						mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+						System.out.println("转换数据保存成功");
+					}
 				}
 				
-				if(wInfo!=null){
-					WarningService wService = new WarningServiceImpl();
-					wService.add(wInfo);
-					System.out.println("添加报警");
-				}
+			}else if(userInfo == null){
+				//用户信息不存在时
+				mapService.addMapDateAct(mapWatchData);//保存转换后的数据
+				System.out.println("转换数据保存成功");
+			}else{
+				//设备状态关闭时
+				
 			}
+			
+			
 			
 			
 		}
@@ -912,7 +969,7 @@ public class DataAnalysis {
 	//获取url参数
 	public static UrlParam getUrlParam(){
 		UrlParam param = new UrlParam();
-		param.setKey("");
+		param.setKey("5c87838663300f4e7430a79582b0dc93");
 		param.setAccesstype(0);
 		param.setCdma(0);
 		param.setNetwork("GPRS");

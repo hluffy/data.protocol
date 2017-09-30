@@ -2,33 +2,39 @@ package com.dk.serviceImpl;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 
-import com.dk.object.Warning;
-import com.dk.object.WarningInfo;
-import com.dk.service.WarningService;
+import com.dk.object.UserInfo;
+import com.dk.service.UserService;
 import com.dk.util.DBUtil;
 
-public class WarningServiceImpl implements WarningService{
+public class UserServiceImpl implements UserService{
 
 	@Override
-	public void add(WarningInfo info) {
+	public UserInfo getUserInfo(String imei) {
 		// TODO Auto-generated method stub
+		UserInfo info = new UserInfo();
 		Connection conn = null;
 		PreparedStatement ps = null;
 		try {
-			String sql = "insert into t_warning(equipment_num,area,type,date,description) values(?,?,?,?,?)";
 			conn = DBUtil.getConnection();
+			String sql = "select * from t_user where equipnumber = ? and equiptype = 1";
 			ps = conn.prepareStatement(sql);
+			ps.setString(1, imei);
 			
-			ps.setString(1, info.getEquipmentNum());
-			ps.setString(2, info.getArea());
-			ps.setString(3, info.getType());
-			ps.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
-			ps.setString(5, info.getDescription());
+			ResultSet rs = ps.executeQuery();
+			if(rs.next()){
+				info.setUserName(rs.getString("userName"));
+				info.setName(rs.getString("name"));
+				info.setEquipstate(rs.getInt("equipstate"));
+				info.setRid(rs.getLong("rid"));
+				info.setRole(rs.getString("role"));
+			}else{
+				info = null;
+			}
 			
-			ps.execute();
+			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -50,25 +56,20 @@ public class WarningServiceImpl implements WarningService{
 				}
 			}
 		}
-		
+		return info;
 	}
 
 	@Override
-	public void addWarningInfo(Warning info) {
+	public void updateUserInfo(int isin,String equipnumber) {
 		// TODO Auto-generated method stub
 		Connection conn = null;
 		PreparedStatement ps = null;
 		try {
 			conn = DBUtil.getConnection();
-			String sql = "insert into t_warning(name,imei,warningtype,watchtime,fid,type2) values(?,?,?,?,?,?)";
+			String sql = "update t_user set isin = ? where equipnumber = ?";
 			ps = conn.prepareStatement(sql);
-			ps.setString(1, info.getName());
-			ps.setString(2, info.getImei());
-			ps.setString(3, info.getWarningType());
-			ps.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
-			ps.setLong(5, info.getFid());
-			ps.setString(6, info.getType2());
-			
+			ps.setInt(1, isin);
+			ps.setString(2, equipnumber);
 			ps.execute();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -84,7 +85,7 @@ public class WarningServiceImpl implements WarningService{
 			}
 			if(ps!=null){
 				try {
-					ps.execute();
+					ps.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

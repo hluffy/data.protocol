@@ -129,7 +129,7 @@ public class MapWatchDataServiceImpl implements MapWatchDataService{
 		Connection conn = null;
 		PreparedStatement ps = null;
 		try {
-			String sql = "select * from map_watch_data_act where imei = ? order by create_date desc limit 2";
+			String sql = "select * from map_watch_data_act where imei = ? and area is not null order by create_date desc limit 2";
 			conn = DBUtil.getConnection();
 			ps = conn.prepareStatement(sql);
 			ps.setString(1, data.getIMEI());

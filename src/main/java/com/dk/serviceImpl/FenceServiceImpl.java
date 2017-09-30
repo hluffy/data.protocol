@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.dk.object.Fence;
 import com.dk.object.FenceInfo;
 import com.dk.object.SettingInfo;
 import com.dk.service.FenceService;
@@ -118,6 +119,63 @@ public class FenceServiceImpl implements FenceService{
 			}
 		}
 		return infos;
+	}
+
+	@Override
+	public Fence getFenceInfo(Long pid) {
+		// TODO Auto-generated method stub
+		Fence info = new Fence();
+		Connection conn = null;
+		PreparedStatement ps = null;
+		try {
+			conn = DBUtil.getConnection();
+			String sql = "select * from t_fence where pid = ?";
+			ps = conn.prepareStatement(sql);
+			ps.setLong(1, pid);
+			
+			ResultSet rs = ps.executeQuery();
+			if(rs.next()){
+				info.setId(rs.getLong("id"));
+				info.setName(rs.getString("name"));
+				info.setXloc(rs.getString("Xloc"));
+				info.setYloc(rs.getString("Yloc"));
+				info.setXloc1(rs.getString("Xloc1"));
+				info.setYloc1(rs.getString("Yloc1"));
+				info.setXloc2(rs.getString("Xloc2"));
+				info.setYloc2(rs.getString("Yloc2"));
+				info.setXloc3(rs.getString("Xloc3"));
+				info.setYloc3(rs.getString("Yloc3"));
+				info.setXloc4(rs.getString("Xloc4"));
+				info.setYloc4(rs.getString("Yloc4"));
+				info.setState(rs.getString("state"));
+				info.setWarningType(rs.getString("warningtype"));
+				info.setStartDate(rs.getString("startdate"));
+				info.setEndDate(rs.getString("enddate"));
+			}else{
+				info = null;
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally{
+			if(conn!=null){
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			if(ps!=null){
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		return info;
 	}
 
 }

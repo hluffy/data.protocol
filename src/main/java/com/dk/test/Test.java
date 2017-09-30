@@ -1,5 +1,6 @@
 package com.dk.test;
 
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,7 @@ public class Test {
 //		logger.error("add error");
 		
 //	}
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 //		String url = "http://apilocate.amap.com/position";
 //		UrlParam param = new UrlParam();
 //		Cdma cdmaParam1 = new Cdma();
@@ -63,19 +64,25 @@ public class Test {
 //		String result = UrlConnection.sendGet(url, map);
 //		System.out.println(result);
 		
-		FenceService server = new FenceServiceImpl();
-		String imei = "355048040008195";
+//		FenceService server = new FenceServiceImpl();
+//		String imei = "355048040008195";
 //		List<FenceInfo> infos = server.getInfos();
 //		for (FenceInfo info : infos) {
 //			System.out.println(info.getLatitude());
 //			System.out.println(info.getLongitude());
 //			System.out.println(info.getRadius());
 //		}
-		List<FenceInfo> infos = server.getInfosAsImei(imei);
-		for (FenceInfo info : infos) {
-			System.out.println(info.getSettingInfo().getState());
-			System.out.println(info.getName());
-		}
+//		List<FenceInfo> infos = server.getInfosAsImei(imei);
+//		for (FenceInfo info : infos) {
+//			System.out.println(info.getSettingInfo().getState());
+//			System.out.println(info.getName());
+//		}
+		
+		Timestamp t1 = new Timestamp(System.currentTimeMillis());
+		Thread.sleep(1);
+		Timestamp t2 = new Timestamp(System.currentTimeMillis());
+		System.out.println(t1.getTime()>t2.getTime());
+		
 		
 	}
 //	public static void main(String[] args) {
